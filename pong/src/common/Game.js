@@ -67,13 +67,26 @@ export default class Game extends GameEngine {
   }
 
   resetBall (ball) {
-    this.ignorePhysics = true
+    ball.velocity.x = 0
+    ball.velocity.y = 0
     ball.position.x = WIDTH / 2
     ball.position.y = Math.random() * HEIGHT
-    ball.velocity.x = 3
-    ball.velocity.y = 3
+    
     setTimeout(() => {
-      this.ignorePhysics = false
+      const r = ball.position.y % 4
+      if (r === 0) {
+        ball.velocity.x = 3
+        ball.velocity.y = 3
+      } else if (r === 1) {
+        ball.velocity.x = 3
+        ball.velocity.y = -3
+      } else if (r === 2) {
+        ball.velocity.x = -3
+        ball.velocity.y = 3
+      } else {
+        ball.velocity.x = -3
+        ball.velocity.y = -3
+      }
     }, 5000)
   }
 
