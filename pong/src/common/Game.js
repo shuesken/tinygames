@@ -1,16 +1,18 @@
 import { GameEngine, BaseTypes, TwoVector, DynamicObject, KeyboardControls, SimplePhysicsEngine } from 'lance-gg'
 
 const PADDING = 20
-const WIDTH = 400
-const HEIGHT = 400
-const PADDLE_WIDTH = 10
-const PADDLE_HEIGHT = 50
+const WIDTH = 600
+const HEIGHT = 600
+const PADDLE_WIDTH = 15
+const PADDLE_HEIGHT = 75
+
+const ACCELERATION = 1.2
 
 // A paddle has a health attribute
 class Paddle extends DynamicObject {
   constructor (gameEngine, options, props) {
     super(gameEngine, options, props)
-    this.health = 0
+    this.health = 15
   }
 
   static get netScheme () {
@@ -64,6 +66,17 @@ export default class Game extends GameEngine {
     serializer.registerClass(Ball)
   }
 
+  resetBall (ball) {
+    this.ignorePhysics = true
+    ball.position.x = WIDTH / 2
+    ball.position.y = Math.random() * HEIGHT
+    ball.velocity.x = 3
+    ball.velocity.y = 3
+    setTimeout(() => {
+      this.ignorePhysics = false
+    }, 5000)
+  }
+
   gameLogic () {
     const paddles = this.world.queryObjects({ instanceType: Paddle })
     const ball = this.world.queryObject({ instanceType: Ball })
@@ -74,14 +87,14 @@ export default class Game extends GameEngine {
             ball.position.y >= paddles[0].y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
             ball.velocity.x < 0) {
       // ball moving left hit player 1 paddle
-      ball.velocity.x *= -1
+      ball.velocity.x *= -1 * ACCELERATION
       ball.position.x = PADDING + PADDLE_WIDTH + 1
     } else if (ball.position.x <= 0) {
       // ball hit left wall
-      ball.velocity.x *= -1
+      ball.velocity.x *= -1 * ACCELERATION
       ball.position.x = 0
-      console.log('player 2 scored')
       paddles[0].health--
+      this.resetBall(ball)
     }
 
     // CHECK RIGHT EDGE:
@@ -95,8 +108,8 @@ export default class Game extends GameEngine {
       // ball hit right wall
       ball.velocity.x *= -1
       ball.position.x = WIDTH - 1
-      console.log('player 1 scored')
       paddles[1].health--
+      this.resetBall(ball)
     }
 
     // ball hits top or bottom edge
@@ -115,10 +128,10 @@ export default class Game extends GameEngine {
     // get the player paddle tied to the player socket
     const playerPaddle = this.world.queryObject({ playerId })
     if (playerPaddle) {
-      if (inputData.input === 'up') {
-        playerPaddle.position.y -= 5
-      } else if (inputData.input === 'down') {
-        playerPaddle.position.y += 5
+      if (inputData.input === 'up' && playerPaddle.position.y > 0) {
+        playerPaddle.position.y -= 10
+      } else if (inputData.input === 'down' && playerPaddle.position.y < HEIGHT - 75) {
+        playerPaddle.position.y += 10
       }
     }
   }
@@ -132,7 +145,7 @@ export default class Game extends GameEngine {
     this.addObjectToWorld(new Paddle(this, null, { playerID: 0, position: new TwoVector(WIDTH - PADDING, 0) }))
     this.addObjectToWorld(new Ball(this, null, {
       position: new TwoVector(WIDTH / 2, HEIGHT / 2),
-      velocity: new TwoVector(2, 2)
+      velocity: new TwoVector(3, 3)
     }))
   }
 
@@ -169,7 +182,6 @@ export default class Game extends GameEngine {
       const health = obj.health > 0 ? obj.health : 15
       el.style.top = obj.position.y + 10 + 'px'
       el.style.left = obj.position.x + 'px'
-      el.style.background = `#ff${health.toString(16)}f${health.toString(16)}f`
     }
 
     const paddles = this.world.queryObjects({ instanceType: Paddle })
