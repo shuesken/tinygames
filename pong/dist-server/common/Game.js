@@ -30,8 +30,8 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
 
 var PADDING = 20;
-var WIDTH = 600;
-var HEIGHT = 600;
+var WIDTH = 400;
+var HEIGHT = 400;
 var PADDLE_WIDTH = 15;
 var PADDLE_HEIGHT = 75;
 var ACCELERATION = 1.2; // A paddle has a health attribute

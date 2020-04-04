@@ -1,8 +1,8 @@
 import { GameEngine, BaseTypes, TwoVector, DynamicObject, KeyboardControls, SimplePhysicsEngine } from 'lance-gg'
 
 const PADDING = 20
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 400
+const HEIGHT = 400
 const PADDLE_WIDTH = 15
 const PADDLE_HEIGHT = 75
 
