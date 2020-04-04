@@ -10,18 +10,18 @@ const ACCELERATION = 1.2
 
 // A paddle has a health attribute
 class Paddle extends DynamicObject {
-  constructor (gameEngine, options, props) {
+  constructor(gameEngine, options, props) {
     super(gameEngine, options, props)
     this.health = 15
   }
 
-  static get netScheme () {
+  static get netScheme() {
     return Object.assign({
       health: { type: BaseTypes.TYPES.INT16 }
     }, super.netScheme)
   }
 
-  syncTo (other) {
+  syncTo(other) {
     super.syncTo(other)
     this.health = other.health
   }
@@ -29,27 +29,28 @@ class Paddle extends DynamicObject {
 
 // a game object to represent the ball
 class Ball extends DynamicObject {
-  constructor (gameEngine, options, props) {
+  constructor(gameEngine, options, props) {
     super(gameEngine, options, props)
   }
 
   // avoid gradual synchronization of velocity
-  get bending () {
+  get bending() {
     return { velocity: { percent: 0.0 } }
   }
 
-  syncTo (other) {
+  syncTo(other) {
     super.syncTo(other)
   }
 }
 
 export default class Game extends GameEngine {
-  constructor (options) {
+  constructor(options) {
     super(options)
     this.physicsEngine = new SimplePhysicsEngine({ gameEngine: this })
 
     // common code
     this.on('postStep', this.gameLogic.bind(this))
+    this.timeout = null
 
     // server-only code
     this.on('server__init', this.serverSideInit.bind(this))
@@ -61,17 +62,27 @@ export default class Game extends GameEngine {
     this.on('client__draw', this.clientSideDraw.bind(this))
   }
 
-  registerClasses (serializer) {
+  registerClasses(serializer) {
     serializer.registerClass(Paddle)
     serializer.registerClass(Ball)
   }
 
-  resetBall (ball) {
+  resetTimeout (ball) {
+    clearTimeout(this.timeout)
+    this.timeout = setTimeout(() => {
+      this.resetBall(ball)
+    }, 10000)
+
+  }
+
+  resetBall(ball) {
+    console.log('resetting ball')
+    this.resetTimeout(ball)
     ball.velocity.x = 0
     ball.velocity.y = 0
     ball.position.x = WIDTH / 2
     ball.position.y = Math.random() * HEIGHT
-    
+
     setTimeout(() => {
       const r = ball.position.y % 4
       if (r === 0) {
@@ -90,18 +101,20 @@ export default class Game extends GameEngine {
     }, 5000)
   }
 
-  gameLogic () {
+  gameLogic() {
     const paddles = this.world.queryObjects({ instanceType: Paddle })
     const ball = this.world.queryObject({ instanceType: Ball })
     if (!ball || paddles.length !== 2) return
 
     // CHECK LEFT EDGE:
     if (ball.position.x <= PADDING + PADDLE_WIDTH &&
-            ball.position.y >= paddles[0].y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
-            ball.velocity.x < 0) {
+      ball.position.y >= paddles[0].y && ball.position.y <= paddles[0].position.y + PADDLE_HEIGHT &&
+      ball.velocity.x < 0) {
       // ball moving left hit player 1 paddle
       ball.velocity.x *= -1 * ACCELERATION
       ball.position.x = PADDING + PADDLE_WIDTH + 1
+      this.resetTimeout(ball)
+
     } else if (ball.position.x <= 0) {
       // ball hit left wall
       ball.velocity.x *= -1 * ACCELERATION
@@ -112,11 +125,12 @@ export default class Game extends GameEngine {
 
     // CHECK RIGHT EDGE:
     if (ball.position.x >= WIDTH - PADDING - PADDLE_WIDTH &&
-            ball.position.y >= paddles[1].position.y && ball.position.y <= paddles[1].position.y + PADDLE_HEIGHT &&
-            ball.velocity.x > 0) {
+      ball.position.y >= paddles[1].position.y && ball.position.y <= paddles[1].position.y + PADDLE_HEIGHT &&
+      ball.velocity.x > 0) {
       // ball moving right hits player 2 paddle
       ball.velocity.x *= -1
       ball.position.x = WIDTH - PADDING - PADDLE_WIDTH - 1
+      this.resetTimeout(ball)
     } else if (ball.position.x >= WIDTH) {
       // ball hit right wall
       ball.velocity.x *= -1
@@ -133,13 +147,9 @@ export default class Game extends GameEngine {
       ball.position.y = HEIGHT - 1
       ball.velocity.y *= -1
     }
-
-    if (ball.velocity.x < 1 && ball.velocity.x > -1) {
-      this.resetBall(ball)
-    }
   }
 
-  processInput (inputData, playerId) {
+  processInput(inputData, playerId) {
     super.processInput(inputData, playerId)
 
     // get the player paddle tied to the player socket
@@ -156,7 +166,7 @@ export default class Game extends GameEngine {
   //
   // SERVER ONLY CODE
   //
-  serverSideInit () {
+  serverSideInit() {
     // create the paddles and the ball
     this.addObjectToWorld(new Paddle(this, null, { playerID: 0, position: new TwoVector(PADDING, 0) }))
     this.addObjectToWorld(new Paddle(this, null, { playerID: 0, position: new TwoVector(WIDTH - PADDING, 0) }))
@@ -167,7 +177,7 @@ export default class Game extends GameEngine {
   }
 
   // attach newly connected player to next available paddle
-  serverSidePlayerJoined (ev) {
+  serverSidePlayerJoined(ev) {
     const paddles = this.world.queryObjects({ instanceType: Paddle })
     if (paddles[0].playerId === 0) {
       paddles[0].playerId = ev.playerId
@@ -176,7 +186,7 @@ export default class Game extends GameEngine {
     }
   }
 
-  serverSidePlayerDisconnected (ev) {
+  serverSidePlayerDisconnected(ev) {
     const paddles = this.world.queryObjects({ instanceType: Paddle })
     if (paddles[0].playerId === ev.playerId) {
       paddles[0].playerId = 0
@@ -188,14 +198,14 @@ export default class Game extends GameEngine {
   //
   // CLIENT ONLY CODE
   //
-  clientSideInit () {
+  clientSideInit() {
     this.controls = new KeyboardControls(this.renderer.clientEngine)
     this.controls.bindKey('up', 'up', { repeat: true })
     this.controls.bindKey('down', 'down', { repeat: true })
   }
 
-  clientSideDraw () {
-    function updateEl (el, obj) {
+  clientSideDraw() {
+    function updateEl(el, obj) {
       const health = obj.health > 0 ? obj.health : 15
       el.style.top = obj.position.y + 10 + 'px'
       el.style.left = obj.position.x + 'px'

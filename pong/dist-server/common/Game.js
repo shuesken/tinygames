@@ -119,8 +119,9 @@ function (_GameEngine) {
       gameEngine: _assertThisInitialized(_this2)
     }); // common code
 
-    _this2.on('postStep', _this2.gameLogic.bind(_assertThisInitialized(_this2))); // server-only code
+    _this2.on('postStep', _this2.gameLogic.bind(_assertThisInitialized(_this2)));
 
+    _this2.timeout = null; // server-only code
 
     _this2.on('server__init', _this2.serverSideInit.bind(_assertThisInitialized(_this2)));
 
@@ -143,16 +144,43 @@ function (_GameEngine) {
       serializer.registerClass(Ball);
     }
   }, {
-    key: "resetBall",
-    value: function resetBall(ball) {
+    key: "resetTimeout",
+    value: function resetTimeout(ball) {
       var _this3 = this;
 
-      this.ignorePhysics = true;
+      clearTimeout(this.timeout);
+      console.log('timeout started');
+      this.timeout = setTimeout(function () {
+        console.log('timeout executed');
+
+        _this3.resetBall(ball);
+      }, 15000);
+    }
+  }, {
+    key: "resetBall",
+    value: function resetBall(ball) {
+      console.log('resetting ball');
+      this.resetTimeout(ball);
+      ball.velocity.x = 0;
+      ball.velocity.y = 0;
       ball.position.x = WIDTH / 2;
       ball.position.y = Math.random() * HEIGHT;
-      ball.velocity = new _lanceGg.TwoVector(2, 2);
       setTimeout(function () {
-        _this3.ignorePhysics = false;
+        var r = ball.position.y % 4;
+
+        if (r === 0) {
+          ball.velocity.x = 3;
+          ball.velocity.y = 3;
+        } else if (r === 1) {
+          ball.velocity.x = 3;
+          ball.velocity.y = -3;
+        } else if (r === 2) {
+          ball.velocity.x = -3;
+          ball.velocity.y = 3;
+        } else {
+          ball.velocity.x = -3;
+          ball.velocity.y = -3;
+        }
       }, 5000);
     }
   }, {
@@ -170,6 +198,7 @@ function (_GameEngine) {
         // ball moving left hit player 1 paddle
         ball.velocity.x *= -1 * ACCELERATION;
         ball.position.x = PADDING + PADDLE_WIDTH + 1;
+        this.resetTimeout(ball);
       } else if (ball.position.x <= 0) {
         // ball hit left wall
         ball.velocity.x *= -1 * ACCELERATION;
@@ -183,6 +212,7 @@ function (_GameEngine) {
         // ball moving right hits player 2 paddle
         ball.velocity.x *= -1;
         ball.position.x = WIDTH - PADDING - PADDLE_WIDTH - 1;
+        this.resetTimeout(ball);
       } else if (ball.position.x >= WIDTH) {
         // ball hit right wall
         ball.velocity.x *= -1;
@@ -235,7 +265,7 @@ function (_GameEngine) {
       }));
       this.addObjectToWorld(new Ball(this, null, {
         position: new _lanceGg.TwoVector(WIDTH / 2, HEIGHT / 2),
-        velocity: new _lanceGg.TwoVector(2, 2)
+        velocity: new _lanceGg.TwoVector(3, 3)
       }));
     } // attach newly connected player to next available paddle
 
