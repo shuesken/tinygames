@@ -149,12 +149,9 @@ function (_GameEngine) {
       var _this3 = this;
 
       clearTimeout(this.timeout);
-      console.log('timeout started');
       this.timeout = setTimeout(function () {
-        console.log('timeout executed');
-
         _this3.resetBall(ball);
-      }, 15000);
+      }, 10000);
     }
   }, {
     key: "resetBall",
