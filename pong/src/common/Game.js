@@ -133,6 +133,10 @@ export default class Game extends GameEngine {
       ball.position.y = HEIGHT - 1
       ball.velocity.y *= -1
     }
+
+    if (ball.velocity.x < 1 && ball.velocity.x > -1) {
+      this.resetBall(ball)
+    }
   }
 
   processInput (inputData, playerId) {

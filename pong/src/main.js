@@ -15,7 +15,7 @@ const requestHandler = server.listen(PORT, () => console.log(`Listening on ${POR
 const io = socketIO(requestHandler)
 
 // Game Instances
-const gameEngine = new Game({ traceLevel: Lib.Trace.TRACE_ALL })
+const gameEngine = new Game({ traceLevel: Lib.Trace.TRACE_NONE })
 const serverEngine = new ServerEngine(io, gameEngine, { debug: {}, updateRate: 6 })
 
 // start the game
